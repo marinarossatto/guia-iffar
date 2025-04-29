@@ -1,40 +1,51 @@
-import {Linking, StyleSheet, View} from "react-native";
-import {Button, Text} from "react-native-paper";
-import EventoCard from "../componentes/EventoCard";
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
+import EventoCard from '../componentes/EventoCard';
 
-const evento_db=[
-    {titulo: "Semana Acadêmica", data:"26/06/2025", local: "Auditório"},
-    {titulo: "BugCup", data:"05/09/2025", local: "Iffar"},
-]
+import { supabase } from '../config/supabase';
 
-export default function Eventos ({navigation}) {
+export default function Eventos({ navigation }) {
+    const [eventos, setEventos] = useState([]);
+    const [carregando, setCarregando] = useState(true);
+
+    useEffect(() => {
+        async function buscar() {
+            const { data, error } =
+                await supabase.from('eventos').select('*');
+
+            if (error) {
+                console.log(error);
+            }
+            else {
+                setEventos(data);
+            }
+            setCarregando(false);
+        }
+        buscar();
+    }, [])
+
     return (
-        <View style={styles.container}>
-            <Text style={styles.titulo}>
-              Lista de Eventos
-            </Text>
-            {evento_db.map((evento, index)=>(
-                <EventoCard key={index} {...evento} />
+        <ScrollView contentContainerStyle={styles.container}>
+            <Text variant="titleLarge" style={styles.titulo}>Eventos Acadêmicos</Text>
+
+            {carregando && <ActivityIndicator animating />}
+
+            {!carregando && eventos.length === 0 && <Text>Não tem registros</Text>}
+
+            {eventos.map((evento, index) => (
+                <EventoCard
+                    key={index}
+                    {...evento}
+                    onPress={() => navigation.navigate('DetalheEvento', evento)}
+
+                />
             ))}
-            
-            <Button style={styles.botao}>
-            </Button>
-        </View>
-    )
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 20
-    },
-    titulo: {
-        fontSize: 24,
-        marginBottom: 30,  
-        textAlign: 'center',
-    },
-    botao: {
-        marginVertical: 10,
-    },
-})
+    container: { padding: 20 },
+    titulo: { marginBottom: 16 },
+});

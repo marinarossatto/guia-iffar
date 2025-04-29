@@ -1,19 +1,29 @@
-import { Card, Text } from "react-native-paper";
-import { StyleSheet } from "react-native";
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Card, Text, Badge, useTheme } from 'react-native-paper';
 
-export default function EventoCard({ titulo, data, local}) {
+
+
+export default function EventoCard({ titulo, data, local, inscricao, onPress }) {
+    const theme = useTheme();
+
+    const corBadge = inscricao === 'aberta'
+        ? theme.colors.primary
+        : theme.colors.secondary;
+
+    const textoBadge = inscricao === 'aberta' ? 'Inscrições abertas' : 'Inscrições Encerradas';
+
     return (
-        <Card style={styles.card} mode="outlined">
+        <Card style={styles.card} mode="outlined" onPress={onPress}>
             <Card.Content>
-                <Text variant="titleMedium" style={styles.title}>
-                    {titulo}
-                </Text>
-                <Text variant="bodyMedium" style={styles.text}>
-                    {data}
-                </Text>
-                <Text variant="bodyMedium" style={styles.text}>
-                    {local}
-                </Text>
+                <View style={styles.header}>
+                    <Text variant="titleMedium">{titulo}</Text>
+                    <Badge style={[styles.badge, { backgroundColor: corBadge }]}>
+                        {textoBadge}
+                    </Badge>
+                </View>
+                <Text variant="bodyMedium">Data: {data}</Text>
+                <Text variant="bodyMedium">Local: {local}</Text>
             </Card.Content>
         </Card>
     );
@@ -21,18 +31,17 @@ export default function EventoCard({ titulo, data, local}) {
 
 const styles = StyleSheet.create({
     card: {
-        margin: 10,
-        borderRadius: 8,
-      
-      
+        marginBottom: 12,
     },
-    title: {
-        fontWeight: 'bold',
-        marginBottom: 5,
-        color: '#2c3e50',
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 8,
     },
-    text: {
-        color: '#7f8c8d',
-        marginBottom: 3,
+    badge: {
+        color: '#fff',
+        paddingHorizontal: 10,
+        fontSize: 12,
     },
 });

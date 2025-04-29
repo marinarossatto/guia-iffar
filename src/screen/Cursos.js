@@ -1,40 +1,48 @@
-import { Linking, StyleSheet, View, ScrollView } from "react-native";
-import { Button, Text } from "react-native-paper";
-import CursoCard from "../componentes/CursoCard";
-
-const cursos_db = [
-    { nome: "Sistemas para Internet", modalidade: "Superior", turno: "noturno" },
-    { nome: "Técnico em Informática", modalidade: "Técnico/médio", turno: "diurno" }
-];
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet } from 'react-native';
+import { Text, ActivityIndicator } from 'react-native-paper';
+import CursoCard from '../componentes/CursoCard';
+import { supabase } from '../config/supabase';
 
 export default function Cursos({ navigation }) {
-    return (
-        <ScrollView contentContainerStyle={styles.container}>
-            <Text style={styles.titulo}>
-                Lista de Cursos
-            </Text>
-            {cursos_db.map((curso, index) => (
-                <CursoCard key={index} {...curso} />
-            ))}
-            
-            <Button style={styles.botao}>
-            </Button>
-        </ScrollView>
-    );
+  const [cursos, setCursos] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+
+  useEffect(() => {
+    async function buscarCursos() {
+      const { data, error } = await supabase.from('cursos').select('*');
+      
+      if (error) {
+        console.error('Erro ao buscar cursos:', error);
+      } else {
+        console.log(data);
+        
+        setCursos(data);
+      }
+      setCarregando(false);
+    }
+
+    buscarCursos();
+  }, []);
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text variant="titleLarge" style={styles.titulo}>Cursos do Campus</Text>
+
+      {carregando && <ActivityIndicator animating />}
+
+      {cursos.map((curso) => (
+        <CursoCard
+          key={curso.id}
+          {...curso}
+          onPress={() => navigation.navigate('DetalheCurso', curso)}
+        />
+      ))}
+    </ScrollView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 20
-    },
-    titulo: {
-        fontSize: 24,
-        marginBottom: 30,  
-        textAlign: 'center',
-    },
-    botao: {
-        marginVertical: 10,
-    },
+  container: { padding: 20 },
+  titulo: { marginBottom: 16 },
 });
