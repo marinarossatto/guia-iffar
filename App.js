@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { UsuarioProvider } from './src/contexto/UsuarioContexto';
 import { StatusBar } from 'expo-status-bar';
 import { PaperProvider } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -12,24 +13,24 @@ import { tema } from './src/config/Tema';
 import Login from './src/screen/Login';
 import Cadastro from './src/screen/Cadastro';
 import DetalheCurso from './src/screen/DetalheCurso';
+import CadastroEvento from './src/screen/CadastroEvento';
 
 const Tab = createBottomTabNavigator();
 
 const Stack = createNativeStackNavigator();
 
-function StackCursos() {
-  return (
-    <Stack.Navigator>
-      <Stack.Screen name="Cursos" component={Cursos} options={{ title: 'Cursos do Campus' }} />
-      <Stack.Screen name="DetalheCurso" component={DetalheCurso} options={{ title: 'Detalhes do Curso' }} />
-    </Stack.Navigator>
-  );
-}
- 
+
+const StackCursos = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="Cursos" component={Cursos} />
+    <Stack.Screen name="DetalheCurso" component={DetalheCurso} />
+  </Stack.Navigator>
+);
 
 export default function App() {
   return (
     <PaperProvider theme={tema}>
+       <UsuarioProvider>
    <NavigationContainer>
         <Tab.Navigator
           screenOptions={{
@@ -65,6 +66,15 @@ export default function App() {
               ),
             }}
           />
+
+<Tab.Screen
+  name="CadastroEvento"
+  component={CadastroEvento}
+  options={{
+    tabBarButton: () => null,
+    tabBarStyle: { display: 'none' },
+  }}
+/>
            <Tab.Screen
             name="Login"
             component={Login}
@@ -100,6 +110,7 @@ export default function App() {
           />
         </Tab.Navigator>
       </NavigationContainer>
+      </UsuarioProvider>
     </PaperProvider>
   );
 }

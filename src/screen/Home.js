@@ -1,14 +1,23 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { Image, StyleSheet, View } from "react-native";
 import { Badge, Button, Text } from "react-native-paper";
+import { useUsuario } from '../contexto/UsuarioContexto'; 
+
 
 export default function Home({ navigation }) {
+
+    const { usuario, perfil, logout } = useUsuario();
+    const sair = async () => {
+        await logout();
+        navigation.navigate('Login'); // redireciona manualmente para login
+     };
+
     return (
-        <LinearGradient
-            colors={['#DFFFEB', '#FFFFFF']} 
-            style= {{flex:1}}
-        >
-            <View style={styles.container}>
+        <LinearGradient colors={['#DFF5EB', '#FFFFFF']} style={styles.container}>
+        <View style={styles.centered}>
+            <Text>Olá, {perfil?.nome || 'Visitante'}!</Text>
+
+           
                 <View style={styles.logoContainer}>
                     <Image
                         source={require('../../assets/logo-iffar.png')}
@@ -51,6 +60,10 @@ export default function Home({ navigation }) {
                     onPress={() => navigation.navigate('Sobre')}
                 >
                     Sobre o app
+                </Button>
+
+                <Button mode="outlined" onPress={sair} style={{ marginTop: 20 }}>
+                    Sair
                 </Button>
                
             </View>
