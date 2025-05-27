@@ -1,47 +1,87 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Card, Text, Badge, useTheme } from 'react-native-paper';
+import { Card, Text, Badge, Button, useTheme } from 'react-native-paper';
 
+export default function EventoCard({ 
+  titulo, 
+  data, 
+  local, 
+  inscricao, 
+  total_vagas,
+  vagas_disponiveis,
+  statusInscricao,
+  onPress 
+}) {
+  const theme = useTheme();
 
+  return (
+    <Card style={styles.card} mode="outlined">
+      <Card.Content>
+        <View style={styles.header}>
+          <Text variant="titleMedium">{titulo}</Text>
 
-export default function EventoCard({ titulo, data, local, inscricao, onPress }) {
-    const theme = useTheme();
+          {statusInscricao === 'confirmada' && (
+            <Badge style={[styles.badgeBase, { backgroundColor: '#555555' }]}>
+              Inscrito
+            </Badge>
+          )}
 
-    const corBadge = inscricao === 'aberta'
-        ? theme.colors.primary
-        : theme.colors.secondary;
+          {statusInscricao === 'espera' && (
+            <Badge style={[styles.badgeBase, { backgroundColor: '#F1C40F' }]}>
+              ⏳ Em espera
+            </Badge>
+          )}
 
-    const textoBadge = inscricao === 'aberta' ? 'Inscrições abertas' : 'Inscrições Encerradas';
+          {!statusInscricao && inscricao === false && (
+            <Badge style={[styles.badgeBase, { backgroundColor: '#C4112F' }]}>
+              🚫 Inscrições Encerradas
+            </Badge>
+          )}
 
-    return (
-        <Card style={styles.card} mode="outlined" onPress={onPress}>
-            <Card.Content>
-                <View style={styles.header}>
-                    <Text variant="titleMedium">{titulo}</Text>
-                    <Badge style={[styles.badge, { backgroundColor: corBadge }]}>
-                        {textoBadge}
-                    </Badge>
-                </View>
-                <Text variant="bodyMedium">Data: {data}</Text>
-                <Text variant="bodyMedium">Local: {local}</Text>
-            </Card.Content>
-        </Card>
-    );
+          {!statusInscricao && inscricao === true && (
+            <Badge style={[styles.badgeBase, { backgroundColor: theme.colors.primary }]}>
+              Inscrições Abertas
+            </Badge>
+          )}
+        </View>
+
+        <Text variant="bodyMedium">📅 {new Date(data).toLocaleDateString('pt-BR')}</Text>
+        <Text variant="bodyMedium">📍 {local}</Text>
+
+        {inscricao && total_vagas !== null && (
+          <Text variant="bodyMedium">
+            🪑 Vagas restantes: {vagas_disponiveis} / {total_vagas}
+          </Text>
+        )}
+
+        <Button
+          mode="text"
+          style={styles.botaoDetalhes}
+          onPress={onPress}
+        >
+          Ver detalhes
+        </Button>
+      </Card.Content>
+    </Card>
+  );
 }
 
 const styles = StyleSheet.create({
-    card: {
-        marginBottom: 12,
-    },
-    header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-    },
-    badge: {
-        color: '#fff',
-        paddingHorizontal: 10,
-        fontSize: 12,
-    },
+  card: {
+    marginBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  badgeBase: {
+    color: '#fff',
+    paddingHorizontal: 10,
+  },
+  botaoDetalhes: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+  },
 });

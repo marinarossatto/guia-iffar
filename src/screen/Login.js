@@ -1,137 +1,108 @@
-import { useState } from 'react';
-import { StyleSheet, View, Image, Alert } from "react-native";
-import { Button, TextInput } from "react-native-paper";
+import React, { useState } from 'react';
+import { View, StyleSheet, Alert } from 'react-native';
+import { TextInput, Button, Text } from 'react-native-paper';
 import { supabase } from '../config/supabase';
+import { useNavigation } from '@react-navigation/native';
+import { useUsuario } from '../contexto/UsuarioContexto';
 
-export default function Login({ navigation }) {
-    const [email, setEmail] = useState('');
-    const [senha, setSenha] = useState('');
-    const [loading, setLoading] = useState(false);
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-    const handleLogin = async () => {
-        if (!email.trim() || !senha.trim()) {
-            Alert.alert('Erro', 'Por favor, preencha todos os campos');
-            return;
-        }
+  const navigation = useNavigation();
+  const { setUsuario, setPerfil } = useUsuario();
 
-        setLoading(true);
+  const fazerLogin = async () => {
+    setCarregando(true);
 
-        try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email: email.trim().toLowerCase(),
-                password: senha
-            });
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: senha,
+    });
 
-            if (error) throw error;
-            navigation.navigate('Home');
-            
-        } catch (error) {
-            console.error('Erro no login:', error);
-            
-            let errorMessage = 'Erro ao fazer login';
-            if (error.message.includes('Invalid login credentials')) {
-                errorMessage = 'E-mail ou senha incorretos';
-            } else if (error.message.includes('Email not confirmed')) {
-                errorMessage = 'Confirme seu e-mail antes de fazer login';
-            }
+    if (error) {
+      console.log('Erro no login:', error);
+      Alert.alert('Erro', 'Email ou senha inválidos.');
+      setCarregando(false);
+      return;
+    }
 
-            Alert.alert('Erro', errorMessage);
-        } finally {
-            setLoading(false);
-        }
-    };
+    const user = data.user;
 
-    return (
-        <View style={styles.container}>
-            <View style={styles.logoContainer}>
-                <Image 
-                    source={require('../../assets/logo-iffar.png')}
-                    style={styles.logo}
-                    resizeMode="contain"
-                />
-            </View>
-            
-            <TextInput
-                style={styles.input}
-                label="E-mail"
-                mode="outlined"
-                keyboardType="email-address"
-                value={email}
-                onChangeText={setEmail}
-                autoCapitalize="none"
-                left={<TextInput.Icon icon="email" />}
-            />
-            
-            <TextInput
-                style={styles.input}
-                label="Senha"
-                mode="outlined"
-                secureTextEntry={true}
-                value={senha}
-                onChangeText={setSenha}
-                left={<TextInput.Icon icon="lock" />}
-            />
-            
-            <Button 
-                style={styles.botao}
-                mode="contained"
-                onPress={handleLogin}
-                loading={loading}
-                disabled={loading}
-            >
-                {loading ? 'Carregando...' : 'Entrar'}
-            </Button>
-            
-            <Button 
-                style={styles.link}
-                mode="text"
-                onPress={() => navigation.navigate('Cadastro')}
-                disabled={loading}
-            >
-                Ainda não tenho conta
-            </Button>
+    if (user) {
+      const { data: perfilUsuario, error: erroPerfil } = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-           
-        </View>
-    );
+      if (erroPerfil) {
+        Alert.alert('Erro', 'Não foi possível buscar o perfil do usuário.');
+        setCarregando(false);
+        return;
+      }
+
+      // Busca todas as inscrições do usuário logado
+      const { data: inscricoesUsuario, error: erroInscricoes } = await supabase
+        .from('inscricoes')
+        .select('evento_id,status')
+        .eq('usuario_id', user.id);
+
+      if (erroInscricoes) {
+        Alert.alert('Erro', 'Erro ao buscar inscrições do usuário.');
+        setCarregando(false);
+        return;
+      }
+
+      // Insere as inscrições no objeto do usuário
+      setUsuario({
+        ...user,
+        inscricoes: inscricoesUsuario || []
+      });
+
+      setPerfil(perfilUsuario);
+
+      Alert.alert('Sucesso', 'Login realizado com sucesso!');
+      navigation.navigate('Home');
+    }
+
+    setCarregando(false);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text variant="titleLarge" style={{ marginBottom: 16 }}>Entrar</Text>
+
+      <TextInput
+        label="E-mail"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        style={styles.input}
+      />
+
+      <TextInput
+        label="Senha"
+        value={senha}
+        onChangeText={setSenha}
+        secureTextEntry
+        style={styles.input}
+      />
+
+      <Button mode="contained" onPress={fazerLogin} loading={carregando}>
+        Entrar
+      </Button>
+
+      <Button onPress={() => navigation.navigate('Cadastro')} style={{ marginTop: 8 }}>
+        Ainda não tenho conta
+      </Button>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        justifyContent: 'center',
-        padding: 20,
-        backgroundColor: '#f5f5f5'
-    },
-    logoContainer: {
-        backgroundColor: 'white',
-        padding: 50,
-        borderRadius: 10,
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: 40,
-        elevation: 3,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        width: '50%',
-        alignSelf: 'center'
-    },
-    logo: {
-        width: '100%',
-        height: 100,
-    },
-    input: {
-        marginVertical: 10,
-        backgroundColor: '#fff'
-    },
-    botao: {
-        marginVertical: 20,
-        paddingVertical: 5,
-        borderRadius: 5
-    },
-    link: {
-        marginTop: 10
-    }
+  container: { padding: 24, flex: 1, justifyContent: 'center' },
+  input: { marginBottom: 16 },
 });
