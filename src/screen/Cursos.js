@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { Text, ActivityIndicator, FAB } from 'react-native-paper';
 import CursoCard from '../componentes/CursoCard';
 import { supabase } from '../config/supabase';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Cursos({ navigation }) {
   const [cursos, setCursos] = useState([]);
@@ -11,7 +12,6 @@ export default function Cursos({ navigation }) {
   useEffect(() => {
     async function buscarCursos() {
       const { data, error } = await supabase.from('cursos').select('*');
-      
       if (error) {
         console.error('Erro ao buscar cursos:', error);
       } else {
@@ -24,9 +24,11 @@ export default function Cursos({ navigation }) {
   }, []);
 
   return (
-    <>
+    <SafeAreaView style={styles.safeContainer}>
       <ScrollView contentContainerStyle={styles.container}>
-        <Text variant="titleLarge" style={styles.titulo}>Cursos do Campus</Text>
+        <Text variant="titleLarge" style={styles.titulo}>
+          Cursos do Campus
+        </Text>
 
         {carregando && <ActivityIndicator animating />}
 
@@ -45,13 +47,26 @@ export default function Cursos({ navigation }) {
         onPress={() => navigation.navigate('CursosTab', { screen: 'CadastroCurso' })}
         label="Novo Curso"
       />
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20 },
-  titulo: { marginBottom: 16 },
+  safeContainer: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  container: {
+    padding: 20,
+    paddingBottom: 100, 
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1c9b5e',
+    textAlign: 'center',
+  },
   fab: {
     position: 'absolute',
     right: 16,

@@ -6,6 +6,7 @@ import { supabase } from '../config/supabase';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback } from 'react';
 import { useUsuario } from '../contexto/UsuarioContexto';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Eventos({ navigation }) {
   const [eventos, setEventos] = useState([]);
@@ -48,7 +49,7 @@ export default function Eventos({ navigation }) {
           listaEventos.map(async (evento) => {
             if (!evento?.id || !evento?.total_vagas) return null;
 
-            const { count: totalConfirmados, error: erroContagem } = await supabase
+            const { count: totalConfirmados } = await supabase
               .from('inscricoes')
               .select('*', { count: 'exact', head: true })
               .eq('evento_id', evento.id)
@@ -56,17 +57,40 @@ export default function Eventos({ navigation }) {
 
             const inscricao = inscricoesUsuario.find(i => i.evento_id === evento.id);
 
+            let quantidadeComentarios = 0;
+            try {
+              if (evento.comentarios) {
+                const json = JSON.parse(evento.comentarios);
+                quantidadeComentarios = Array.isArray(json) ? json.length : 0;
+              }
+            } catch (e) {
+              quantidadeComentarios = 0;
+            }
+
+            const { count: quantidadeCurtidas } = await supabase
+              .from('curtidas_evento')
+              .select('*', { count: 'exact', head: true })
+              .eq('evento_id', evento.id);
+
+            const { data: imagens } = await supabase
+              .storage
+              .from('eventos')
+              .list(`eventos/${evento.id}`);
+
+            const quantidadeFotos = imagens?.length || 0;
+
             return {
               ...evento,
               statusInscricao: inscricao?.status || null,
               vagas_disponiveis: evento.total_vagas - (totalConfirmados || 0),
+              quantidadeComentarios,
+              quantidadeCurtidas: quantidadeCurtidas || 0,
+              quantidadeFotos,
             };
           })
         );
 
         const eventosFiltrados = eventosComStatus.filter(e => e !== null);
-
-        console.log('🧪 Eventos carregados:', eventosFiltrados);
 
         if (ativo) {
           setEventos(eventosFiltrados);
@@ -75,15 +99,11 @@ export default function Eventos({ navigation }) {
       }
 
       buscarEventos();
-
-      return () => {
-        ativo = false;
-      };
     }, [usuario])
   );
 
   return (
-    <>
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.container}>
         <Text variant="titleLarge" style={styles.titulo}>Eventos Acadêmicos</Text>
 
@@ -114,7 +134,7 @@ export default function Eventos({ navigation }) {
           })
         }
       />
-    </>
+    </SafeAreaView>
   );
 }
 
@@ -122,11 +142,15 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 100,
+    backgroundColor: '#f5f5f5',
+    flexGrow: 1,
   },
   titulo: {
-    marginBottom: 16,
     fontSize: 22,
     fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#1c9b5e',
+    textAlign: 'center',
   },
   loading: {
     marginTop: 20,

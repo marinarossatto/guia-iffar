@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Alert, View, Image, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, StyleSheet, Alert, View, Image } from 'react-native';
 import { TextInput, Button, Text, Switch } from 'react-native-paper';
 import { useUsuario } from '../contexto/UsuarioContexto';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { supabase } from '../config/supabase';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system'; // ✅ IMPORTANTE
 
 export default function CadastroEvento() {
   const { perfil } = useUsuario();
   const navigation = useNavigation();
+  const route = useRoute();
 
   const [titulo, setTitulo] = useState('');
   const [dataEvento, setDataEvento] = useState('');
@@ -17,51 +17,37 @@ export default function CadastroEvento() {
   const [descricao, setDescricao] = useState('');
   const [inscricao, setInscricao] = useState(true);
   const [total_vagas, setTotal_vagas] = useState('');
+  const [imagensLocal, setImagensLocal] = useState([]);
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
 
-  const [fotoEventoUrl, setFotoEventoUrl] = useState(null);
-  const [fotoLocal, setFotoLocal] = useState(null);
-  const [carregandoFoto, setCarregandoFoto] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      const p = route.params;
+      if (!p?.voltouDoMapa) return;
 
-  if (perfil?.tipo !== 'admin') {
-    return (
-      <View style={styles.bloqueado}>
-        <Text variant="titleLarge">⛔ Acesso restrito</Text>
-        <Text>Esta funcionalidade é exclusiva para administradores.</Text>
-      </View>
-    );
-  }
+      if ('titulo' in p) setTitulo(p.titulo);
+      if ('dataEvento' in p) setDataEvento(p.dataEvento);
+      if ('local' in p) setLocal(p.local);
+      if ('descricao' in p) setDescricao(p.descricao);
+      if ('total_vagas' in p) setTotal_vagas(p.total_vagas);
+      if ('inscricao' in p) setInscricao(p.inscricao);
+      if ('imagensLocal' in p) setImagensLocal(p.imagensLocal);
+      if ('latitude' in p) setLatitude(p.latitude);
+      if ('longitude' in p) setLongitude(p.longitude);
+    }, [route.params])
+  );
 
-  const uploadFoto = async (uri) => {
-    setCarregandoFoto(true);
-    try {
-      const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-
-      const byteArray = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const blob = new Blob([byteArray], { type: 'image/jpeg' });
-
-      const nomeImagem = `evento_${Date.now()}.jpg`;
-
-      const { error } = await supabase.storage.from('eventos').upload(nomeImagem, blob, {
-        contentType: 'image/jpeg',
-        upsert: true,
-      });
-
-      if (error) {
-        console.error("Erro ao enviar imagem:", error);
-        Alert.alert('Erro ao enviar imagem', error.message);
-      } else {
-        const { data: { publicUrl } } = supabase.storage.from('eventos').getPublicUrl(nomeImagem);
-        setFotoEventoUrl(publicUrl);
-        console.log("Imagem enviada:", publicUrl);
-      }
-    } catch (err) {
-      console.error("Erro geral no envio da imagem:", err);
-      Alert.alert('Erro', 'Erro no envio da imagem.');
-    } finally {
-      setCarregandoFoto(false);
+  const handleDataChange = (text) => {
+    let digits = text.replace(/\D/g, '');
+    if (digits.length > 8) digits = digits.slice(0, 8);
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    } else if (digits.length > 4) {
+      formatted = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
     }
+    setDataEvento(formatted);
   };
 
   const tirarFoto = async () => {
@@ -70,13 +56,10 @@ export default function CadastroEvento() {
       Alert.alert('Permissão da câmera negada...');
       return;
     }
-
     const resultado = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-
     if (!resultado.canceled) {
       const imagem = resultado.assets[0];
-      setFotoLocal(imagem.uri);
-      await uploadFoto(imagem.uri);
+      setImagensLocal(prev => [...prev, imagem.uri]);
     }
   };
 
@@ -86,13 +69,10 @@ export default function CadastroEvento() {
       Alert.alert('Permissão negada...');
       return;
     }
-
-    const resultado = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [4, 3], quality: 0.7 });
-
+    const resultado = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: true, allowsEditing: true, aspect: [4, 3], quality: 0.7 });
     if (!resultado.canceled) {
-      const imagem = resultado.assets[0];
-      setFotoLocal(imagem.uri);
-      await uploadFoto(imagem.uri);
+      const novasImagens = resultado.assets.map(a => a.uri);
+      setImagensLocal(prev => [...prev, ...novasImagens]);
     }
   };
 
@@ -104,56 +84,88 @@ export default function CadastroEvento() {
     ]);
   };
 
+  if (perfil?.tipo !== 'admin') {
+    return (
+      <View style={styles.bloqueado}>
+        <Text variant="titleLarge">⛔ Acesso restrito</Text>
+        <Text>Esta funcionalidade é exclusiva para administradores.</Text>
+      </View>
+    );
+  }
+
   const salvarEvento = async () => {
-    try {
-      if (!/^\d{2}\/\d{2}\/\d{4}$/.test(dataEvento)) {
-        Alert.alert('Erro', 'A data deve estar no formato dd/mm/aaaa.');
-        return;
-      }
-
-      const [dia, mes, ano] = dataEvento.split('/');
-      const dataFormatada = `${ano}-${mes.padStart(2, '0')}-${dia.padStart(2, '0')}`;
-
-      if (isNaN(new Date(dataFormatada).getTime())) {
-        Alert.alert('Erro', 'Data inválida.');
-        return;
-      }
-
-      if (!titulo || !local) {
-        Alert.alert('Erro', 'Preencha os campos obrigatórios.');
-        return;
-      }
-
-      if (inscricao && (!total_vagas || isNaN(total_vagas) || parseInt(total_vagas) <= 0)) {
-        Alert.alert('Erro', 'Informe um número válido de vagas.');
-        return;
-      }
-
-      const { error } = await supabase.from('eventos').insert([{
-        titulo,
-        data: dataFormatada,
-        local,
-        descricao,
-        inscricao,
-        total_vagas: parseInt(total_vagas),
-        foto_url: fotoEventoUrl,
-      }]);
-
-      if (error) {
-        Alert.alert('Erro ao salvar', error.message);
-      } else {
-        Alert.alert('Sucesso', 'Evento cadastrado!');
-        setTitulo('');
-        setDataEvento('');
-        setLocal('');
-        setDescricao('');
-        setTotal_vagas('');
-        setInscricao(true);
-        navigation.navigate('EventosTab', { screen: 'EventosLista' });
-      }
-    } catch (error) {
-      Alert.alert('Erro', 'Problema ao processar a data.');
+    if (!titulo.trim() || !local.trim()) {
+      Alert.alert('Erro', 'Preencha os campos obrigatórios.');
+      return;
     }
+
+    if (inscricao && (!total_vagas || isNaN(total_vagas) || parseInt(total_vagas) <= 0)) {
+      Alert.alert('Erro', 'Informe um número válido de vagas.');
+      return;
+    }
+
+    if (!latitude || !longitude) {
+      Alert.alert('Erro', 'Selecione a localização do evento no mapa.');
+      return;
+    }
+
+    const parts = dataEvento.split('/');
+    let [dia, mes, ano] = parts;
+    if (parts.length === 3) {
+      if (ano.length === 2) ano = '20' + ano;
+    } else {
+      Alert.alert('Erro', 'Digite a data corretamente');
+      return;
+    }
+
+    const dataObj = new Date(`${ano}-${mes}-${dia}T00:00:00`);
+    if (isNaN(dataObj.getTime())) {
+      Alert.alert('Erro', 'Data inválida.');
+      return;
+    }
+
+    const evento = {
+      titulo: titulo.trim(),
+      data: dataObj,
+      local: local.trim(),
+      descricao: descricao.trim(),
+      inscricao,
+      total_vagas: inscricao ? parseInt(total_vagas) : null,
+      foto_url: imagensLocal[0] || null,
+      latitude,
+      longitude
+    };
+
+    const { data: eventoCriado, error } = await supabase.from('eventos').insert([evento]).select().single();
+    if (error || !eventoCriado) {
+      console.error('❌ Erro Supabase:', error);
+      Alert.alert('Erro ao salvar', error.message);
+      return;
+    }
+
+    const eventoId = eventoCriado.id;
+
+    for (let i = 0; i < imagensLocal.length; i++) {
+      const uri = imagensLocal[i];
+      const nomeImagem = `eventos/${eventoId}/imagem_${Date.now()}_${i}.jpg`;
+      const arquivo = { uri, name: nomeImagem, type: 'image/jpeg' };
+      const { error: uploadError } = await supabase.storage.from('eventos').upload(nomeImagem, arquivo);
+      if (uploadError) {
+        console.error('Erro ao enviar imagem:', uploadError);
+      }
+    }
+
+    Alert.alert('Sucesso', 'Evento cadastrado!');
+    setTitulo('');
+    setDataEvento('');
+    setLocal('');
+    setDescricao('');
+    setTotal_vagas('');
+    setInscricao(true);
+    setImagensLocal([]);
+    setLatitude(null);
+    setLongitude(null);
+    navigation.navigate('EventosTab', { screen: 'EventosLista' });
   };
 
   return (
@@ -161,7 +173,7 @@ export default function CadastroEvento() {
       <Text variant="titleLarge" style={styles.titulo}>Novo Evento</Text>
 
       <TextInput label="Título" value={titulo} onChangeText={setTitulo} style={styles.input} />
-      <TextInput label="Data (dd/mm/aaaa)" value={dataEvento} onChangeText={setDataEvento} style={styles.input} />
+      <TextInput label="Data" value={dataEvento} onChangeText={handleDataChange} placeholder="Ex: 090625 ou 09062025" keyboardType="numeric" style={styles.input} />
       <TextInput label="Local" value={local} onChangeText={setLocal} style={styles.input} />
       <TextInput label="Descrição" value={descricao} onChangeText={setDescricao} multiline style={styles.input} />
       <TextInput label="Quantidade de vagas" value={total_vagas} onChangeText={setTotal_vagas} keyboardType="numeric" style={styles.input} />
@@ -171,25 +183,52 @@ export default function CadastroEvento() {
         <Switch value={inscricao} onValueChange={setInscricao} />
       </View>
 
-      <Button mode="outlined" onPress={selecionarImagem} style={{ marginTop: 20 }}>Adicionar Imagem do Evento</Button>
-
-      {Platform.OS === 'web' && (
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(event) => {
-            const file = event.target.files[0];
-            if (file) {
-              const uri = URL.createObjectURL(file);
-              setFotoLocal(uri);
-              uploadFoto(uri);
+      <Button
+        mode="outlined"
+        onPress={() =>
+          navigation.navigate('SelecionarLocalizacao', {
+            voltarPara: 'CadastroEvento',
+            dadosAnteriores: {
+              titulo,
+              dataEvento,
+              local,
+              descricao,
+              total_vagas,
+              inscricao,
+              imagensLocal,
+              latitude,
+              longitude,
             }
-          }}
-        />
+          })
+        }
+        style={{ marginTop: 20 }}
+      >
+        Selecionar Localização no Mapa
+      </Button>
+
+      {latitude && longitude && (
+        <Text style={{ marginTop: 8 }}>
+          📍 Coordenadas: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+        </Text>
       )}
 
-      {fotoLocal && <Image source={{ uri: fotoLocal }} style={{ width: 200, height: 200, marginTop: 10, borderRadius: 10 }} />}
-      <Button mode="contained" onPress={salvarEvento} style={{ marginTop: 20 }}>Salvar Evento</Button>
+      <Button mode="outlined" onPress={selecionarImagem} style={{ marginTop: 20 }}>
+        Adicionar Imagens
+      </Button>
+
+      <ScrollView horizontal style={{ marginTop: 10 }}>
+        {imagensLocal.map((uri, idx) => (
+          <Image
+            key={idx}
+            source={{ uri }}
+            style={{ width: 100, height: 100, borderRadius: 10, marginRight: 8 }}
+          />
+        ))}
+      </ScrollView>
+
+      <Button mode="contained" onPress={salvarEvento} style={{ marginTop: 20 }}>
+        Salvar Evento
+      </Button>
     </ScrollView>
   );
 }

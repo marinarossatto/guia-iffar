@@ -2,6 +2,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Image, StyleSheet, View, ScrollView } from "react-native";
 import { Button, Text } from "react-native-paper";
 import { useUsuario } from '../contexto/UsuarioContexto';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home({ navigation }) {
   const { usuario, perfil, logout } = useUsuario();
@@ -12,79 +13,86 @@ export default function Home({ navigation }) {
   };
 
   return (
-    <LinearGradient colors={['#DFF5EB', '#FFFFFF']} style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.centered}>
+    <LinearGradient colors={['#DFF5EB', '#FFFFFF']} style={styles.gradient}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.centered}>
 
-       
-          <Text style={styles.boasVindas}>
-             Olá, {usuario && perfil?.nome ? perfil.nome : 'Visitante'}!
-          </Text>
-          <Text style={styles.subtitulo}>
-            Seja bem-vindo ao Guia Acadêmico do IFFar 
-          </Text>
+            <Text style={styles.boasVindas}>
+              Olá, {usuario && perfil?.nome ? perfil.nome : 'Visitante'}!
+            </Text>
 
-        
-          <View style={styles.logoContainer}>
-            <Image
-              source={require('../../assets/logo-iffar.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <Text style={styles.subtitulo}>
+              Seja bem-vindo ao Guia Acadêmico do IFFar
+            </Text>
+
+            <View style={styles.logoContainer}>
+              <Image
+                source={require('../../assets/logo-iffar.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={() => navigation.navigate('CursosTab', { screen: 'Cursos' })}
+            >
+              Cursos
+            </Button>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={() => navigation.navigate('EventosTab', { screen: 'EventosLista' })}
+            >
+              Eventos
+            </Button>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={() => navigation.navigate('Tabs', { screen: 'MinhaConta' })}
+            >
+              Meu Perfil
+            </Button>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={() => navigation.navigate('Login')}
+            >
+              Login
+            </Button>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={() => navigation.navigate('Sobre')}
+            >
+              Sobre o app
+            </Button>
+
+            <Button
+              style={styles.botao}
+              mode="contained"
+              onPress={sair}
+            >
+              Sair
+            </Button>
           </View>
-
-         
-          <Text style={styles.titulo}>Guia Acadêmico IFFar</Text>
-
-        
-          <Button
-            style={styles.botao}
-            mode="contained"
-            onPress={() => navigation.navigate('CursosTab', { screen: 'Cursos' })}
-          >
-            Ver Cursos
-          </Button>
-
-          <Button
-            style={styles.botao}
-            mode="contained"
-            onPress={() => navigation.navigate('EventosTab', { screen: 'EventosLista' })}
-          >
-            Ver Eventos
-          </Button>
-
-          <Button
-            style={styles.botao}
-            mode="contained"
-            onPress={() => navigation.navigate('Login')}
-          >
-            Login
-          </Button>
-
-          <Button
-            style={styles.botao}
-            mode="contained"
-            onPress={() => navigation.navigate('Sobre')}
-          >
-            Sobre o app
-          </Button>
-
-          <Button
-            style={styles.botao}
-            mode="contained"
-            onPress={sair}
-          >
-            Sair
-          </Button>
-
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
     </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  gradient: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
   },
   scrollContainer: {
@@ -121,20 +129,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     width: '50%',
-    alignSelf: 'center'
+    alignSelf: 'center',
   },
   logo: {
     width: '100%',
     height: 100,
   },
-  titulo: {
-    fontSize: 24,
-    marginBottom: 30,
-    textAlign: 'center',
-    color: '#2c3e50'
-  },
+
   botao: {
     marginVertical: 10,
     alignSelf: 'stretch',
-  }
+  },
 });

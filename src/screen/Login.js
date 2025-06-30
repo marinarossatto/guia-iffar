@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { supabase } from '../config/supabase';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useUsuario } from '../contexto/UsuarioContexto';
 
 export default function Login() {
@@ -12,6 +12,14 @@ export default function Login() {
 
   const navigation = useNavigation();
   const { setUsuario, setPerfil } = useUsuario();
+
+  // Limpar campos ao focar a tela
+  useFocusEffect(
+    useCallback(() => {
+      setEmail('');
+      setSenha('');
+    }, [])
+  );
 
   const fazerLogin = async () => {
     setCarregando(true);
@@ -43,7 +51,6 @@ export default function Login() {
         return;
       }
 
-      // Busca todas as inscrições do usuário logado
       const { data: inscricoesUsuario, error: erroInscricoes } = await supabase
         .from('inscricoes')
         .select('evento_id,status')
@@ -55,15 +62,12 @@ export default function Login() {
         return;
       }
 
-      // Insere as inscrições no objeto do usuário
       setUsuario({
         ...user,
         inscricoes: inscricoesUsuario || []
       });
 
       setPerfil(perfilUsuario);
-
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
       navigation.navigate('Home');
     }
 
@@ -72,7 +76,7 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text variant="titleLarge" style={{ marginBottom: 16 }}>Entrar</Text>
+      <Text variant="titleLarge" style={styles.titulo}>Entrar</Text>
 
       <TextInput
         label="E-mail"
@@ -91,11 +95,21 @@ export default function Login() {
         style={styles.input}
       />
 
-      <Button mode="contained" onPress={fazerLogin} loading={carregando}>
+      <Button
+        mode="contained"
+        onPress={fazerLogin}
+        loading={carregando}
+        disabled={carregando}
+        style={styles.botao}
+      >
         Entrar
       </Button>
 
-      <Button onPress={() => navigation.navigate('Cadastro')} style={{ marginTop: 8 }}>
+      <Button
+        mode="text"
+        onPress={() => navigation.navigate('Cadastro')}
+        style={styles.link}
+      >
         Ainda não tenho conta
       </Button>
     </View>
@@ -103,6 +117,29 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 24, flex: 1, justifyContent: 'center' },
-  input: { marginBottom: 16 },
+  container: {
+    padding: 24,
+    flex: 1,
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  titulo: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 24,
+    color: '#1c9b5e',
+    textAlign: 'center',
+  },
+  input: {
+    marginBottom: 16,
+    backgroundColor: 'white',
+  },
+  botao: {
+    marginTop: 8,
+    paddingVertical: 6,
+  },
+  link: {
+    marginTop: 12,
+    alignSelf: 'center',
+  },
 });

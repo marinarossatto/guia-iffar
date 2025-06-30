@@ -1,17 +1,17 @@
 import React, { createContext, useContext, useState } from 'react';
+
 import { supabase } from '../config/supabase';
 
 const UsuarioContext = createContext();
 
 export const UsuarioProvider = ({ children }) => {
-  // Agora inclui `inscricoes` como array padrão
-  const [usuario, setUsuario] = useState({ inscricoes: [] }); // auth + lista de inscricoes
-  const [perfil, setPerfil] = useState(null); // dados da tabela usuarios
+  const [usuario, setUsuario] = useState({ inscricoes: [] }); 
+  const [perfil, setPerfil] = useState(null); 
   const [carregando, setCarregando] = useState(true);
 
   const logout = async () => {
     await supabase.auth.signOut();
-    setUsuario({ inscricoes: [] }); // limpa tudo, incluindo inscricoes
+    setUsuario({ inscricoes: [] }); 
     setPerfil(null);
   };
 

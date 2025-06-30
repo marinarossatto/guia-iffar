@@ -1,87 +1,143 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Card, Text, Badge, Button, useTheme } from 'react-native-paper';
+import { StyleSheet, View, TouchableOpacity } from 'react-native';
+import { Card, Text, useTheme } from 'react-native-paper';
+import { Ionicons, MaterialIcons, AntDesign } from '@expo/vector-icons';
 
-export default function EventoCard({ 
-  titulo, 
-  data, 
-  local, 
-  inscricao, 
+export default function EventoCard({
+  titulo,
+  data,
+  local,
+  inscricao,
   total_vagas,
   vagas_disponiveis,
   statusInscricao,
-  onPress 
+  quantidadeComentarios = 0,
+  quantidadeFotos = 0,
+  quantidadeCurtidas = 0,
+  onPress
 }) {
   const theme = useTheme();
+  const primary = theme.colors.primary;
+
+  const getBadge = () => {
+    if (statusInscricao === 'confirmada') {
+      return { texto: 'Inscrito', cor: '#555' };
+    }
+    if (statusInscricao === 'espera') {
+      return { texto: '⏳ Em espera', cor: '#F1C40F' };
+    }
+    if (!statusInscricao && inscricao === false) {
+      return { texto: '🚫 Encerradas', cor: '#C4112F' };
+    }
+    if (!statusInscricao && inscricao === true) {
+      return { texto: 'Abertas', cor: primary };
+    }
+    return null;
+  };
+
+  const badge = getBadge();
 
   return (
-    <Card style={styles.card} mode="outlined">
-      <Card.Content>
-        <View style={styles.header}>
-          <Text variant="titleMedium">{titulo}</Text>
+    <TouchableOpacity onPress={onPress}>
+      <Card style={styles.card} mode="outlined">
+        <Card.Content>
+          <View style={styles.header}>
+            <Text style={styles.titulo}>{titulo}</Text>
+            {badge && (
+              <View style={[styles.badgeBase, { backgroundColor: badge.cor }]}>
+                <Text style={styles.badgeText}>{badge.texto}</Text>
+              </View>
+            )}
+          </View>
 
-          {statusInscricao === 'confirmada' && (
-            <Badge style={[styles.badgeBase, { backgroundColor: '#555555' }]}>
-              Inscrito
-            </Badge>
+          <Text style={styles.info}>📅 {new Date(data).toLocaleDateString('pt-BR')}</Text>
+          <Text style={styles.info}>📍 {local}</Text>
+
+          {inscricao && total_vagas !== null && (
+            <Text style={styles.info}>
+              🪑 Vagas: {vagas_disponiveis} / {total_vagas}
+            </Text>
           )}
 
-          {statusInscricao === 'espera' && (
-            <Badge style={[styles.badgeBase, { backgroundColor: '#F1C40F' }]}>
-              ⏳ Em espera
-            </Badge>
-          )}
-
-          {!statusInscricao && inscricao === false && (
-            <Badge style={[styles.badgeBase, { backgroundColor: '#C4112F' }]}>
-              🚫 Inscrições Encerradas
-            </Badge>
-          )}
-
-          {!statusInscricao && inscricao === true && (
-            <Badge style={[styles.badgeBase, { backgroundColor: theme.colors.primary }]}>
-              Inscrições Abertas
-            </Badge>
-          )}
-        </View>
-
-        <Text variant="bodyMedium">📅 {new Date(data).toLocaleDateString('pt-BR')}</Text>
-        <Text variant="bodyMedium">📍 {local}</Text>
-
-        {inscricao && total_vagas !== null && (
-          <Text variant="bodyMedium">
-            🪑 Vagas restantes: {vagas_disponiveis} / {total_vagas}
-          </Text>
-        )}
-
-        <Button
-          mode="text"
-          style={styles.botaoDetalhes}
-          onPress={onPress}
-        >
-          Ver detalhes
-        </Button>
-      </Card.Content>
-    </Card>
+          <View style={styles.iconesRodape}>
+            <View style={styles.iconWrapper}>
+              <AntDesign name="hearto" size={20} color={primary} />
+              <Text style={[styles.sobrescrito, styles.sobrescritoCurtir]}>{quantidadeCurtidas}</Text>
+            </View>
+            <View style={styles.iconWrapper}>
+              <Ionicons name="chatbubble-ellipses-outline" size={20} color={primary} />
+              <Text style={styles.sobrescrito}>{quantidadeComentarios}</Text>
+            </View>
+            <View style={styles.iconWrapper}>
+              <MaterialIcons name="photo-library" size={20} color={primary} />
+              <Text style={styles.sobrescrito}>{quantidadeFotos}</Text>
+            </View>
+          </View>
+        </Card.Content>
+      </Card>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     marginBottom: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1C9B5E',
+    backgroundColor: '#fdfdfd',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 10,
+  },
+  titulo: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1C9B5E',
+    flex: 1,
+    marginRight: 10,
   },
   badgeBase: {
-    color: '#fff',
+    borderRadius: 12,
     paddingHorizontal: 10,
+    paddingVertical: 2,
   },
-  botaoDetalhes: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
+  badgeText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+  info: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+  },
+  iconesRodape: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    gap: 20,
+    marginTop: 12,
+  },
+  iconWrapper: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sobrescrito: {
+    position: 'absolute',
+    top: -10,
+    right: -10,
+    fontSize: 10,
+    color: 'red',
+    fontWeight: 'bold',
+  },
+  sobrescritoCurtir: {
+    right: -12,
   },
 });
